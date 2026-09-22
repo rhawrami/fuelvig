@@ -79,8 +79,9 @@ def normalize_prices(input_path: Path = DEFAULT_INPUT) -> dict[str, Any]:
     return {
         "schemaVersion": 1,
         "source": {
-            "name": "jacobschulman/gas-tracker",
-            "url": "https://github.com/jacobschulman/gas-tracker",
+            "name": "AAA Gas Prices",
+            "url": "https://gasprices.aaa.com/",
+            "historicalBackfill": "https://github.com/jacobschulman/gas-tracker",
             "lastUpdated": metadata["lastUpdated"],
         },
         "firstDate": metadata["firstDate"],

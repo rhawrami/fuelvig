@@ -62,3 +62,30 @@ small index first and fetch a make only after the user selects it. Source tank
 capacities are marked `unverified`; implausible or inconsistent values are
 marked `suspect`; entries from `data/vehicles/overrides.csv` are marked
 `verified`.
+
+## Update prices
+
+Fetch the current AAA national and state averages, validate them, update the
+historical database, save a dated parsed snapshot, and rebuild frontend data:
+
+```sh
+uv run python -m scripts.update_prices
+```
+
+The updater makes two requests and observes AAA's 10-second crawl delay. It
+requires all 50 states plus DC and every expected grade before writing data.
+Rerunning it for unchanged prices is idempotent.
+
+Run the parser and update-pipeline fixtures without network access using:
+
+```sh
+uv run pytest tests/test_update_prices.py
+```
+
+The command also accepts `--home-html` and `--states-html` when debugging with
+complete saved pages.
+
+GitHub Actions runs this update daily at 16:30 UTC and can also be started
+manually from the Actions tab. The workflow commits only validated changes
+under `data/prices/`. Pull requests and pushes to `main` run lint, formatting,
+and tests through the separate CI workflow.
