@@ -1,0 +1,1 @@
+{"schemaVersion":1,"source":{"name":"gor3a/vehicle-makes-models","url":"https://github.com/gor3a/vehicle-makes-models"},"slug":"gaz","name":"GAZ","models":[{"name":"Gazelle","yearStart":1994,"yearEnd":null,"generations":[]},{"name":"Sobol","yearStart":1998,"yearEnd":null,"generations":[]},{"name":"Volga","yearStart":1956,"yearEnd":2010,"generations":[]}]}
