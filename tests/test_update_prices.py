@@ -7,13 +7,17 @@ import pytest
 
 from scripts.update_prices import (
     AAA_CRAWL_DELAY_SECONDS,
+    AAA_HOME_FETCH_URLS,
     AAA_HOME_URL,
     AAA_STATES_FETCH_URLS,
     NATIONAL_GRADES,
     STATE_CODES,
     STATE_GRADES,
+    UPSTREAM_LATEST_URL,
     PriceScrape,
+    fetch_current_scrape,
     fetch_pages,
+    parse_latest_json,
     parse_national_page,
     parse_pages,
     parse_states_page,
@@ -48,6 +52,16 @@ def _complete_states_html(price_date: str = "9/21/26") -> str:
       <table id="sortable"><tbody>{rows}</tbody></table>
     </body></html>
     """
+
+
+def _latest_json(price_date: str = "2026-09-21") -> str:
+    return json.dumps(
+        {
+            "date": price_date,
+            "national": _prices(NATIONAL_GRADES),
+            "states": {state_code: _prices(STATE_GRADES) for state_code in sorted(STATE_CODES)},
+        }
+    )
 
 
 def test_parse_national_page() -> None:
@@ -87,6 +101,14 @@ def test_validation_rejects_incomplete_state_coverage() -> None:
         validate_scrape(scrape)
 
 
+def test_parse_latest_json_validates_complete_payload() -> None:
+    scrape = parse_latest_json(_latest_json())
+
+    assert scrape.price_date == date(2026, 9, 21)
+    assert scrape.national == _prices(NATIONAL_GRADES)
+    assert set(scrape.states) == STATE_CODES
+
+
 def test_fetch_pages_falls_back_after_http_error(monkeypatch: pytest.MonkeyPatch) -> None:
     home_html = (FIXTURES / "aaa_home.html").read_text()
     states_html = (FIXTURES / "aaa_states.html").read_text()
@@ -94,6 +116,10 @@ def test_fetch_pages_falls_back_after_http_error(monkeypatch: pytest.MonkeyPatch
 
     def handler(request: httpx.Request) -> httpx.Response:
         requested_urls.append(str(request.url))
+        assert request.headers["user-agent"].startswith("Mozilla/5.0")
+        assert request.headers["accept-language"] == "en-US,en;q=0.9"
+        if str(request.url) == AAA_HOME_FETCH_URLS[0]:
+            return httpx.Response(403)
         if str(request.url) == AAA_HOME_URL:
             return httpx.Response(200, text=home_html)
         if str(request.url) == AAA_STATES_FETCH_URLS[0]:
@@ -106,8 +132,8 @@ def test_fetch_pages_falls_back_after_http_error(monkeypatch: pytest.MonkeyPatch
     pages = fetch_pages(transport=httpx.MockTransport(handler))
 
     assert pages == (home_html, states_html)
-    assert requested_urls == [AAA_HOME_URL, *AAA_STATES_FETCH_URLS]
-    assert sleeps == [AAA_CRAWL_DELAY_SECONDS, AAA_CRAWL_DELAY_SECONDS]
+    assert requested_urls == [*AAA_HOME_FETCH_URLS, *AAA_STATES_FETCH_URLS]
+    assert sleeps == [AAA_CRAWL_DELAY_SECONDS] * 3
 
 
 def test_fetch_pages_reports_exhausted_routes(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -123,6 +149,47 @@ def test_fetch_pages_reports_exhausted_routes(monkeypatch: pytest.MonkeyPatch) -
     for url in AAA_STATES_FETCH_URLS:
         assert url in str(error.value)
     assert str(error.value).count("403 Forbidden") == len(AAA_STATES_FETCH_URLS)
+
+
+def test_fetch_current_scrape_uses_validated_upstream_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def aaa_handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(403, text="blocked")
+
+    def upstream_handler(request: httpx.Request) -> httpx.Response:
+        assert str(request.url) == UPSTREAM_LATEST_URL
+        return httpx.Response(200, text=_latest_json())
+
+    monkeypatch.setattr("scripts.update_prices.time.sleep", lambda _: None)
+
+    scrape = fetch_current_scrape(
+        aaa_transport=httpx.MockTransport(aaa_handler),
+        upstream_transport=httpx.MockTransport(upstream_handler),
+    )
+
+    assert scrape.price_date == date(2026, 9, 21)
+    assert set(scrape.states) == STATE_CODES
+
+
+def test_fetch_current_scrape_rejects_incomplete_upstream_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def aaa_handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(403, text="blocked")
+
+    def upstream_handler(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(_latest_json())
+        del payload["states"]["DC"]
+        return httpx.Response(200, json=payload)
+
+    monkeypatch.setattr("scripts.update_prices.time.sleep", lambda _: None)
+
+    with pytest.raises(RuntimeError, match="coverage mismatch"):
+        fetch_current_scrape(
+            aaa_transport=httpx.MockTransport(aaa_handler),
+            upstream_transport=httpx.MockTransport(upstream_handler),
+        )
 
 
 def test_database_update_is_idempotent() -> None:

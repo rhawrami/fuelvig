@@ -72,8 +72,10 @@ historical database, save a dated parsed snapshot, and rebuild frontend data:
 uv run python -m scripts.update_prices
 ```
 
-The updater makes two requests and observes AAA's 10-second crawl delay. It
-requires all 50 states plus DC and every expected grade before writing data.
+The updater requests AAA with browser-compatible headers and observes AAA's
+10-second crawl delay. If AAA blocks the runner, it uses the static latest-price
+endpoint from the attributed `jacobschulman/gas-tracker` source. Both paths
+require all 50 states plus DC and every expected grade before writing data.
 Rerunning it for unchanged prices is idempotent.
 
 Run the parser and update-pipeline fixtures without network access using:
