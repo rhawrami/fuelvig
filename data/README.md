@@ -36,10 +36,9 @@ the raw source file.
 `prices/processed/prices.json` contains compact national and state time-series
 arrays. Grade names and their array order are included in the file.
 
-`prices/raw/daily/*.json` contains validated AAA values parsed directly or read
-from the attributed `jacobschulman/gas-tracker` static endpoint when AAA blocks
-the runner. These small semantic snapshots preserve the fetched result without
-committing source pages' unrelated markup, scripts, and advertisements.
+`prices/raw/daily/*.json` contains the validated values parsed during each AAA
+update. These small semantic snapshots preserve the fetched result without
+committing the source pages' unrelated markup, scripts, and advertisements.
 
 `vehicles/processed/index.json` contains make-level counts and file slugs.
 `vehicles/processed/by-make/*.json` contains models, generations, variants,

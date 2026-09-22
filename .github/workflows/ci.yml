@@ -30,6 +30,11 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
 
+      - name: Install Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "20"
+
       - name: Install dependencies
         run: uv sync --locked
 
@@ -40,4 +45,6 @@ jobs:
         run: uv run --frozen ruff format --check .
 
       - name: Run tests
-        run: uv run --frozen pytest
+        run: |
+          node --test tests/test_fetch_aaa.mjs
+          uv run --frozen pytest

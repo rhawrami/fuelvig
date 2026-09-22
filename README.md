@@ -72,11 +72,10 @@ historical database, save a dated parsed snapshot, and rebuild frontend data:
 uv run python -m scripts.update_prices
 ```
 
-The updater requests AAA with browser-compatible headers and observes AAA's
-10-second crawl delay. If AAA blocks the runner, it uses the static latest-price
-endpoint from the attributed `jacobschulman/gas-tracker` source. Both paths
-require all 50 states plus DC and every expected grade before writing data.
-Rerunning it for unchanged prices is idempotent.
+The updater requires all 50 states plus DC and every expected grade before
+writing data. Rerunning it for unchanged prices is idempotent. GitHub Actions
+fetches the two AAA pages directly with Node's HTTPS client, observes AAA's
+10-second crawl delay, and passes the saved pages to the Python updater.
 
 Run the parser and update-pipeline fixtures without network access using:
 

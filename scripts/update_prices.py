@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import sys
 import time
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
@@ -29,9 +28,6 @@ AAA_HOME_FETCH_URLS = (
 AAA_STATES_FETCH_URLS = (
     f"{AAA_STATES_URL}?output=1",
     AAA_STATES_URL,
-)
-UPSTREAM_LATEST_URL = (
-    "https://raw.githubusercontent.com/jacobschulman/gas-tracker/main/api/v1/latest.json"
 )
 AAA_CRAWL_DELAY_SECONDS = 10
 NATIONAL_GRADES = ("regular", "midGrade", "premium", "diesel", "e85")
@@ -237,35 +233,6 @@ def parse_pages(home_html: str, states_html: str) -> PriceScrape:
     return scrape
 
 
-def parse_latest_json(content: str) -> PriceScrape:
-    try:
-        payload = json.loads(content)
-        price_date = date.fromisoformat(payload["date"])
-        national_payload = payload["national"]
-        states_payload = payload["states"]
-        if not isinstance(national_payload, dict) or not isinstance(states_payload, dict):
-            raise TypeError("national and states must be objects")
-
-        national = {
-            grade: _parse_price(str(value), location=f"national/{grade}")
-            for grade, value in national_payload.items()
-        }
-        states = {}
-        for state_code, prices_payload in states_payload.items():
-            if not isinstance(state_code, str) or not isinstance(prices_payload, dict):
-                raise TypeError("state entries must map state codes to price objects")
-            states[state_code] = {
-                grade: _parse_price(str(value), location=f"states/{state_code}/{grade}")
-                for grade, value in prices_payload.items()
-            }
-    except (json.JSONDecodeError, KeyError, TypeError, ValueError) as error:
-        raise ValueError(f"Upstream latest-price payload is invalid: {error}") from error
-
-    scrape = PriceScrape(price_date=price_date, national=national, states=states)
-    validate_scrape(scrape)
-    return scrape
-
-
 def fetch_pages(*, transport: httpx.BaseTransport | None = None) -> tuple[str, str]:
     if transport is None:
         transport = httpx.HTTPTransport(retries=3)
@@ -314,39 +281,6 @@ def fetch_pages(*, transport: httpx.BaseTransport | None = None) -> tuple[str, s
         home_response = fetch_first("homepage", AAA_HOME_FETCH_URLS)
         states_response = fetch_first("state averages", AAA_STATES_FETCH_URLS)
         return home_response.text, states_response.text
-
-
-def fetch_upstream_latest(*, transport: httpx.BaseTransport | None = None) -> PriceScrape:
-    if transport is None:
-        transport = httpx.HTTPTransport(retries=3)
-    with httpx.Client(transport=transport, timeout=30) as client:
-        response = client.get(
-            UPSTREAM_LATEST_URL,
-            headers={"Accept": "application/json", "User-Agent": "gas-prices-mvp/0.1"},
-        )
-        response.raise_for_status()
-    return parse_latest_json(response.text)
-
-
-def fetch_current_scrape(
-    *,
-    aaa_transport: httpx.BaseTransport | None = None,
-    upstream_transport: httpx.BaseTransport | None = None,
-) -> PriceScrape:
-    try:
-        return parse_pages(*fetch_pages(transport=aaa_transport))
-    except (httpx.HTTPError, RuntimeError, ValueError) as aaa_error:
-        print(
-            f"Direct AAA fetch failed; using validated upstream mirror: {aaa_error}",
-            file=sys.stderr,
-        )
-        try:
-            return fetch_upstream_latest(transport=upstream_transport)
-        except (httpx.HTTPError, ValueError) as upstream_error:
-            raise RuntimeError(
-                "Unable to fetch current prices from AAA or the upstream mirror; "
-                f"AAA error: {aaa_error}; upstream error: {upstream_error}"
-            ) from upstream_error
 
 
 def load_database(path: Path = DEFAULT_INPUT) -> dict[str, Any]:
@@ -404,7 +338,6 @@ def write_snapshot(scrape: PriceScrape, directory: Path = SNAPSHOT_DIRECTORY) ->
             "name": "AAA Gas Prices",
             "nationalUrl": AAA_HOME_URL,
             "statesUrl": AAA_STATES_URL,
-            "fallbackUrl": UPSTREAM_LATEST_URL,
         },
         "date": scrape.price_date.isoformat(),
         "national": scrape.national,
@@ -423,29 +356,13 @@ def run_update(
     snapshot_directory: Path = SNAPSHOT_DIRECTORY,
 ) -> tuple[PriceScrape, bool]:
     scrape = parse_pages(home_html, states_html)
-    changed = apply_update(
-        scrape,
-        database_path=database_path,
-        normalized_path=normalized_path,
-        snapshot_directory=snapshot_directory,
-    )
-    return scrape, changed
-
-
-def apply_update(
-    scrape: PriceScrape,
-    *,
-    database_path: Path = DEFAULT_INPUT,
-    normalized_path: Path = DEFAULT_OUTPUT,
-    snapshot_directory: Path = SNAPSHOT_DIRECTORY,
-) -> bool:
     database = load_database(database_path)
     changed = update_database(database, scrape)
     write_snapshot(scrape, snapshot_directory)
     if changed:
         write_database(database, database_path)
     write_prices(normalize_prices(database_path), normalized_path)
-    return changed
+    return scrape, changed
 
 
 def main() -> None:
@@ -463,21 +380,16 @@ def main() -> None:
     if all(fixture_paths):
         home_html = arguments.home_html.read_text()
         states_html = arguments.states_html.read_text()
-        scrape, changed = run_update(
-            home_html,
-            states_html,
-            database_path=arguments.database,
-            normalized_path=arguments.output,
-            snapshot_directory=arguments.snapshots,
-        )
     else:
-        scrape = fetch_current_scrape()
-        changed = apply_update(
-            scrape,
-            database_path=arguments.database,
-            normalized_path=arguments.output,
-            snapshot_directory=arguments.snapshots,
-        )
+        home_html, states_html = fetch_pages()
+
+    scrape, changed = run_update(
+        home_html,
+        states_html,
+        database_path=arguments.database,
+        normalized_path=arguments.output,
+        snapshot_directory=arguments.snapshots,
+    )
     action = "updated" if changed else "already current"
     print(f"Prices for {scrape.price_date.isoformat()} are {action}")
 

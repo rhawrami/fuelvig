@@ -30,14 +30,27 @@ jobs:
           enable-cache: true
           cache-dependency-glob: uv.lock
 
+      - name: Install Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "20"
+
       - name: Install dependencies
         run: uv sync --locked
 
       - name: Check scraper before network access
-        run: uv run --frozen pytest tests/test_update_prices.py
+        run: |
+          node --test tests/test_fetch_aaa.mjs
+          uv run --frozen pytest tests/test_update_prices.py
+
+      - name: Fetch AAA pages
+        run: node scripts/fetch_aaa.mjs "$RUNNER_TEMP/aaa-home.html" "$RUNNER_TEMP/aaa-states.html"
 
       - name: Update prices
-        run: uv run --frozen python -m scripts.update_prices
+        run: >-
+          uv run --frozen python -m scripts.update_prices
+          --home-html "$RUNNER_TEMP/aaa-home.html"
+          --states-html "$RUNNER_TEMP/aaa-states.html"
 
       - name: Validate repository
         run: |
