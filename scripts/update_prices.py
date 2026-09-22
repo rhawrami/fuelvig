@@ -21,6 +21,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT_DIRECTORY = PROJECT_ROOT / "data/prices/raw/daily"
 AAA_HOME_URL = "https://gasprices.aaa.com/"
 AAA_STATES_URL = "https://gasprices.aaa.com/state-gas-price-averages/"
+AAA_STATES_FETCH_URLS = (
+    f"{AAA_STATES_URL}?output=1",
+    AAA_STATES_URL,
+)
 AAA_CRAWL_DELAY_SECONDS = 10
 NATIONAL_GRADES = ("regular", "midGrade", "premium", "diesel", "e85")
 STATE_GRADES = ("regular", "midGrade", "premium", "diesel")
@@ -225,8 +229,9 @@ def parse_pages(home_html: str, states_html: str) -> PriceScrape:
     return scrape
 
 
-def fetch_pages() -> tuple[str, str]:
-    transport = httpx.HTTPTransport(retries=3)
+def fetch_pages(*, transport: httpx.BaseTransport | None = None) -> tuple[str, str]:
+    if transport is None:
+        transport = httpx.HTTPTransport(retries=3)
     headers = {
         "User-Agent": "gas-prices-mvp/0.1 (+https://github.com/rhawrami/gas_prices)",
         "Accept": "text/html,application/xhtml+xml",
@@ -239,10 +244,22 @@ def fetch_pages() -> tuple[str, str]:
     ) as client:
         home_response = client.get(AAA_HOME_URL)
         home_response.raise_for_status()
-        time.sleep(AAA_CRAWL_DELAY_SECONDS)
-        states_response = client.get(AAA_STATES_URL)
-        states_response.raise_for_status()
-    return home_response.text, states_response.text
+
+        failures = []
+        last_error = None
+        for states_url in AAA_STATES_FETCH_URLS:
+            time.sleep(AAA_CRAWL_DELAY_SECONDS)
+            try:
+                states_response = client.get(states_url)
+                states_response.raise_for_status()
+            except httpx.HTTPError as error:
+                failures.append(f"{states_url}: {error}")
+                last_error = error
+                continue
+            return home_response.text, states_response.text
+
+    details = "\n".join(f"- {failure}" for failure in failures)
+    raise RuntimeError(f"AAA state averages fetch failed:\n{details}") from last_error
 
 
 def load_database(path: Path = DEFAULT_INPUT) -> dict[str, Any]:

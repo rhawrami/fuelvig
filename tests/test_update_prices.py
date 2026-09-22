@@ -2,13 +2,18 @@ import json
 from datetime import UTC, date, datetime
 from pathlib import Path
 
+import httpx
 import pytest
 
 from scripts.update_prices import (
+    AAA_CRAWL_DELAY_SECONDS,
+    AAA_HOME_URL,
+    AAA_STATES_FETCH_URLS,
     NATIONAL_GRADES,
     STATE_CODES,
     STATE_GRADES,
     PriceScrape,
+    fetch_pages,
     parse_national_page,
     parse_pages,
     parse_states_page,
@@ -80,6 +85,44 @@ def test_validation_rejects_incomplete_state_coverage() -> None:
 
     with pytest.raises(ValueError, match="coverage mismatch"):
         validate_scrape(scrape)
+
+
+def test_fetch_pages_falls_back_after_http_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    home_html = (FIXTURES / "aaa_home.html").read_text()
+    states_html = (FIXTURES / "aaa_states.html").read_text()
+    requested_urls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requested_urls.append(str(request.url))
+        if str(request.url) == AAA_HOME_URL:
+            return httpx.Response(200, text=home_html)
+        if str(request.url) == AAA_STATES_FETCH_URLS[0]:
+            return httpx.Response(403)
+        return httpx.Response(200, text=states_html)
+
+    sleeps = []
+    monkeypatch.setattr("scripts.update_prices.time.sleep", sleeps.append)
+
+    pages = fetch_pages(transport=httpx.MockTransport(handler))
+
+    assert pages == (home_html, states_html)
+    assert requested_urls == [AAA_HOME_URL, *AAA_STATES_FETCH_URLS]
+    assert sleeps == [AAA_CRAWL_DELAY_SECONDS, AAA_CRAWL_DELAY_SECONDS]
+
+
+def test_fetch_pages_reports_exhausted_routes(monkeypatch: pytest.MonkeyPatch) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        status_code = 200 if str(request.url) == AAA_HOME_URL else 403
+        return httpx.Response(status_code, text="blocked")
+
+    monkeypatch.setattr("scripts.update_prices.time.sleep", lambda _: None)
+
+    with pytest.raises(RuntimeError, match="AAA state averages fetch failed") as error:
+        fetch_pages(transport=httpx.MockTransport(handler))
+
+    for url in AAA_STATES_FETCH_URLS:
+        assert url in str(error.value)
+    assert str(error.value).count("403 Forbidden") == len(AAA_STATES_FETCH_URLS)
 
 
 def test_database_update_is_idempotent() -> None:
