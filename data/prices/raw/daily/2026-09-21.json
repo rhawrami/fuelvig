@@ -2,7 +2,8 @@
   "source": {
     "name": "AAA Gas Prices",
     "nationalUrl": "https://gasprices.aaa.com/",
-    "statesUrl": "https://gasprices.aaa.com/state-gas-price-averages/"
+    "statesUrl": "https://gasprices.aaa.com/state-gas-price-averages/",
+    "fallbackUrl": "https://raw.githubusercontent.com/jacobschulman/gas-tracker/main/api/v1/latest.json"
   },
   "date": "2026-09-21",
   "national": {
