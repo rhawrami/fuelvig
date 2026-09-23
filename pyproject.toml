@@ -1,5 +1,5 @@
 [project]
-name = "gas-prices"
+name = "fuelvig"
 version = "0.1.0"
 description = "Static gas-price tracker and vehicle fill-up cost calculator"
 readme = "README.md"

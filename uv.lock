@@ -47,7 +47,7 @@ wheels = [
 ]
 
 [[package]]
-name = "gas-prices"
+name = "fuelvig"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

@@ -52,7 +52,7 @@ test("fetches both AAA pages with the expected request behavior", async () => {
       requests.map((request) => request.url),
       ["/", "/states"],
     );
-    assert.match(requests[0].headers["user-agent"], /gas-prices-mvp/);
+    assert.match(requests[0].headers["user-agent"], /fuelvig/);
     assert.equal(requests[0].headers["accept-encoding"], "gzip, deflate");
   } finally {
     await close(server);

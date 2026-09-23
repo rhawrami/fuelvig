@@ -11,7 +11,7 @@ const DEFAULT_STATES_URL = "https://gasprices.aaa.com/state-gas-price-averages/"
 const DEFAULT_CRAWL_DELAY_MS = 10_000;
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_REDIRECTS = 5;
-const USER_AGENT = "gas-prices-mvp/1.0 (+https://github.com/rhawrami/gas_prices)";
+const USER_AGENT = "fuelvig/1.0 (+https://github.com/rhawrami/fuelvig)";
 
 const gunzipAsync = promisify(gunzip);
 const inflateAsync = promisify(inflate);
