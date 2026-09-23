@@ -90,3 +90,28 @@ GitHub Actions runs this update daily at 16:30 UTC and can also be started
 manually from the Actions tab. The workflow commits only validated changes
 under `data/prices/`. Pull requests and pushes to `main` run lint, formatting,
 and tests through the separate CI workflow.
+
+## Frontend
+
+Build the two-page static site and copy only its processed data dependencies:
+
+```sh
+uv run python -m scripts.build_site
+```
+
+Preview the generated artifact from the repository root:
+
+```sh
+uv run python -m http.server --directory _site 8000
+```
+
+Then open `http://localhost:8000/`. The frontend uses D3 for its price-history
+and calculator figures. Its calculation rules are tested independently with:
+
+```sh
+node --test tests/test_calculations.mjs
+```
+
+Pushes to `main` build the same `_site` artifact and deploy it through the
+GitHub Pages workflow. The repository's Pages source must be set to GitHub
+Actions.

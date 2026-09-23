@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: write
   contents: write
 
 concurrency:
@@ -54,6 +55,7 @@ jobs:
 
       - name: Validate repository
         run: |
+          node --test tests/test_calculations.mjs
           uv run --frozen ruff check .
           uv run --frozen ruff format --check .
           uv run --frozen pytest
@@ -80,3 +82,9 @@ jobs:
             data/prices/processed/prices.json
           git commit -m "data: update gas prices"
           git push
+
+      - name: Deploy updated data
+        if: steps.changes.outputs.changed == 'true'
+        run: gh workflow run pages.yml --ref main -f ref="$(git rev-parse HEAD)"
+        env:
+          GH_TOKEN: ${{ github.token }}

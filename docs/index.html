@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Explore U.S. gas prices and estimate how much recent price changes have cost you."
+    >
+    <title>Fuel Vig</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js" defer></script>
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <header class="site-header">
+      <a class="wordmark" href="index.html" aria-label="Fuel Vig home">
+        <span class="wordmark-mark" aria-hidden="true"></span>
+        <span>Fuel Vig</span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a class="active" href="index.html" aria-current="page">Tracker</a>
+        <a href="methodology.html">Methodology</a>
+      </nav>
+    </header>
+
+    <main id="main-content">
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <p class="eyebrow">U.S. pump price monitor</p>
+          <h1 id="page-title">The price at the pump.</h1>
+          <p class="hero-deck">
+            Follow retail fuel prices across the country, then estimate what the change means
+            for your own tank.
+          </p>
+        </div>
+      </section>
+
+      <section class="explorer section-rule" aria-labelledby="explorer-title">
+        <div class="section-heading">
+          <div>
+            <p class="section-number">Price history</p>
+            <h2 id="explorer-title">What drivers are paying</h2>
+          </div>
+          <p>
+            Average retail price per gallon (updated <span id="price-update-date">...</span>). The
+            vertical marker denotes the start of the Iran War, February 28, 2026.
+          </p>
+        </div>
+
+        <div class="chart-controls" aria-label="Price chart controls">
+          <label>
+            <span>Jurisdiction</span>
+            <select id="history-jurisdiction">
+              <option value="US">National</option>
+            </select>
+          </label>
+          <label>
+            <span>Fuel grade</span>
+            <select id="history-grade">
+              <option value="regular">Regular</option>
+              <option value="midGrade">Mid-grade</option>
+              <option value="premium">Premium</option>
+              <option value="diesel">Diesel</option>
+              <option value="e85">E85</option>
+            </select>
+          </label>
+          <div class="time-range-control" role="group" aria-label="Chart time range">
+            <span>Time range</span>
+            <div>
+              <button type="button" data-range-months="1" aria-pressed="false">1M</button>
+              <button type="button" data-range-months="3" aria-pressed="false">3M</button>
+              <button type="button" data-range-months="6" aria-pressed="false">6M</button>
+              <button type="button" data-range-months="12" class="active" aria-pressed="true">1Y</button>
+              <button type="button" data-range-months="all" aria-pressed="false">All</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-summary" aria-live="polite">
+          <div>
+            <span class="metric-label">Latest</span>
+            <strong id="latest-price">--</strong>
+          </div>
+          <div>
+            <span class="metric-label">Vs. pre-war average</span>
+            <strong id="treatment-change">--</strong>
+          </div>
+          <div>
+            <span class="metric-label">Series</span>
+            <strong id="series-label">National regular</strong>
+          </div>
+        </div>
+
+        <figure class="chart-frame history-frame">
+          <div
+            id="history-chart"
+            class="chart"
+            role="img"
+            aria-label="Time series of national regular gas prices"
+          ></div>
+        </figure>
+      </section>
+
+      <section class="calculator section-rule" aria-labelledby="calculator-title">
+        <div class="section-heading calculator-heading">
+          <div>
+            <p class="section-number">Personal estimate</p>
+            <h2 id="calculator-title">How much more are you paying?</h2>
+          </div>
+          <p>
+            Build an estimate around your vehicle, location, and fill-up habits. We assume each
+            visit takes your tank from one-quarter full to completely full.
+          </p>
+        </div>
+
+        <div class="calculator-layout">
+          <form id="calculator-form" class="calculator-form">
+            <fieldset>
+              <legend>Your vehicle</legend>
+              <div class="field-grid">
+                <label>
+                  <span>Make</span>
+                  <select id="vehicle-make" required disabled>
+                    <option value="">Loading makes...</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Model</span>
+                  <select id="vehicle-model" required disabled>
+                    <option value="">Select a make first</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Year</span>
+                  <select id="vehicle-year" required disabled>
+                    <option value="">Select a model first</option>
+                  </select>
+                </label>
+                <label class="field-wide">
+                  <span>Engine or variant</span>
+                  <select id="vehicle-variant" required disabled>
+                    <option value="">Select a year first</option>
+                  </select>
+                </label>
+              </div>
+              <p id="vehicle-note" class="field-note" aria-live="polite">
+                Tank capacities are source-reported and may be unavailable for some vehicles.
+              </p>
+            </fieldset>
+
+            <fieldset>
+              <legend>Your routine</legend>
+              <div class="field-grid">
+                <label>
+                  <span>State</span>
+                  <select id="calculator-state" required>
+                    <option value="">Select a state</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Preferred grade</span>
+                  <select id="calculator-grade" required>
+                    <option value="regular">Regular</option>
+                    <option value="midGrade">Mid-grade</option>
+                    <option value="premium">Premium</option>
+                    <option value="diesel">Diesel</option>
+                  </select>
+                </label>
+                <label class="range-field field-wide">
+                  <span>Fill-ups per month <output id="fills-output">2</output></span>
+                  <input id="fills-per-month" type="range" min="1" max="12" step="1" value="2">
+                  <span class="range-limits" aria-hidden="true"><span>1</span><span>12</span></span>
+                </label>
+              </div>
+            </fieldset>
+
+            <fieldset class="counterfactual-fieldset">
+              <legend>The alternative</legend>
+              <p>
+                If the Iran War had not begun, how would prices have changed each month?
+              </p>
+              <label class="range-field">
+                <span>Compounded monthly trend <output id="trend-output">0%</output></span>
+                <input
+                  id="counterfactual-trend"
+                  type="range"
+                  min="-10"
+                  max="10"
+                  step="0.5"
+                  value="0"
+                >
+                <span class="range-limits" aria-hidden="true">
+                  <span>-10%</span><span>No change</span><span>+10%</span>
+                </span>
+              </label>
+            </fieldset>
+          </form>
+
+          <aside class="estimate-panel" aria-live="polite">
+            <p class="estimate-kicker">Estimated difference since start of war</p>
+            <p id="estimate-total" class="estimate-total">Select your vehicle and state</p>
+            <p id="estimate-interpretation" class="estimate-interpretation">
+              Your estimate will appear here once we have a usable tank capacity.
+            </p>
+            <dl class="estimate-details">
+              <div>
+                <dt>Gallons per fill</dt>
+                <dd id="gallons-per-fill">--</dd>
+              </div>
+              <div>
+                <dt>Actual estimated spend</dt>
+                <dd id="actual-spend">--</dd>
+              </div>
+              <div>
+                <dt>Alternative spend</dt>
+                <dd id="counterfactual-spend">--</dd>
+              </div>
+              <div>
+                <dt>Baseline</dt>
+                <dd id="baseline-price">--</dd>
+              </div>
+            </dl>
+            <p id="estimate-caveat" class="estimate-caveat"></p>
+          </aside>
+        </div>
+
+        <figure class="chart-frame estimate-frame">
+          <div class="figure-heading">
+            <div>
+              <p class="metric-label">Actual vs. alternative</p>
+              <h3 id="estimate-chart-title">Your price path</h3>
+            </div>
+            <div class="legend" aria-hidden="true">
+              <span><i class="legend-actual"></i>Actual</span>
+              <span><i class="legend-counterfactual"></i>Expected</span>
+            </div>
+          </div>
+          <div
+            id="estimate-chart"
+            class="chart"
+            role="img"
+            aria-label="Actual gas prices compared with the expected price path"
+          ></div>
+          <table class="sr-only">
+            <caption>Monthly actual and expected prices</caption>
+            <thead>
+              <tr><th>Month</th><th>Actual</th><th>Expected</th></tr>
+            </thead>
+            <tbody id="estimate-table-body"></tbody>
+          </table>
+          <figcaption id="estimate-caption">
+            Complete the calculator to compare observed and counterfactual prices.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section class="methodology-callout section-rule" aria-labelledby="methodology-callout-title">
+        <p class="section-number">Methodology</p>
+        <div>
+          <h2 id="methodology-callout-title">Read the methodology.</h2>
+          <p>
+            The result depends on reported tank capacity, available price observations, assumed
+            fill timing, and your counterfactual trend.
+          </p>
+        </div>
+        <a class="text-link" href="methodology.html">Read the methodology <span aria-hidden="true">-></span></a>
+      </section>
+    </main>
+
+    <footer>
+      <a
+        class="github-button"
+        href="https://github.com/rhawrami/gas_prices"
+        aria-label="View Fuel Vig on GitHub"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.11.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.52-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.78 2.72 1.27 3.38.97.1-.75.4-1.27.74-1.56-2.57-.29-5.27-1.29-5.27-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.47.11-3.05 0 0 .97-.31 3.16 1.18a10.98 10.98 0 0 1 5.76 0c2.2-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.71 5.39-5.29 5.68.42.36.79 1.06.79 2.15v3.19c0 .31.21.68.8.56A11.5 11.5 0 0 0 12 .7Z"/>
+        </svg>
+      </a>
+    </footer>
+
+    <div id="chart-tooltip" class="chart-tooltip" role="status" aria-live="polite"></div>
+  </body>
+</html>

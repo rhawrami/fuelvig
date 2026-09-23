@@ -47,4 +47,5 @@ jobs:
       - name: Run tests
         run: |
           node --test tests/test_fetch_aaa.mjs
+          node --test tests/test_calculations.mjs
           uv run --frozen pytest

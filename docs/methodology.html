@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta
+      name="description"
+      content="Methodology and data limitations for the Fuel Vig gas-price calculator."
+    >
+    <title>Methodology | Fuel Vig</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <header class="site-header">
+      <a class="wordmark" href="index.html" aria-label="Fuel Vig home">
+        <span class="wordmark-mark" aria-hidden="true"></span>
+        <span>Fuel Vig</span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="index.html">Tracker</a>
+        <a class="active" href="methodology.html" aria-current="page">Methodology</a>
+      </nav>
+    </header>
+
+    <main id="main-content" class="methodology-page">
+      <header class="methodology-hero">
+        <h1>Methodology</h1>
+        <p>Here's how Fuel Vig works, and where we get our data.</p>
+      </header>
+
+      <div class="methodology-grid section-rule">
+        <aside class="methodology-index" aria-label="On this page">
+          <p class="metric-label">On this page</p>
+          <ol>
+            <li><a href="#baseline">Baseline</a></li>
+            <li><a href="#usage">Driver assumptions</a></li>
+            <li><a href="#averaging">Price averaging</a></li>
+            <li><a href="#counterfactual">Counterfactual</a></li>
+            <li><a href="#formula">Calculation</a></li>
+            <li><a href="#limitations">Limitations</a></li>
+            <li><a href="#sources">Sources</a></li>
+          </ol>
+        </aside>
+
+        <article class="methodology-content">
+          <section id="baseline">
+            <p class="section-number">01</p>
+            <h2>Baseline</h2>
+            <p>
+              The treatment period begins on <strong>February 28, 2026</strong>. The starting
+              counterfactual price is the arithmetic mean of all available observations from
+              January 29 through February 27, 2026 for the selected state and grade.
+            </p>
+            <p>
+              Source coverage is uneven in this window. For example, only one observation is
+              available for each of 42 jurisdictions. The calculator reports the number of
+              baseline observations used so that this limitation remains visible.
+            </p>
+          </section>
+
+          <section id="usage">
+            <p class="section-number">02</p>
+            <h2>Driver assumptions</h2>
+            <p>
+              Each fill-up is assumed to take a vehicle from one-quarter full to completely full.
+              Gallons purchased per visit therefore equal 75 percent of the selected vehicle's
+              reported tank capacity.
+            </p>
+            <p>
+              If matching engines share one tank capacity and fuel category, the calculator uses
+              it automatically. If capacities or fuel categories differ, the driver must select
+              an engine or variant. Missing and invalid capacities cannot produce an estimate.
+            </p>
+          </section>
+
+          <section id="averaging">
+            <p class="section-number">03</p>
+            <h2>Price averaging</h2>
+            <p>
+              If the user selects one monthly fill, then that month's arithmetic average is used.
+              Two or more fills use four fixed periods: days 1-7, 8-14, 15-21, and 22 through
+              month-end. Fills are distributed across those periods as evenly as possible,
+              starting with the earliest period.
+            </p>
+            <p>
+              If a period has no observation, the month's available-observation average is used.
+              Months with no observations are omitted.
+            </p>
+            <p>
+              For an incomplete current month, the estimate includes only fill periods that have
+              begun by the latest available observation.
+            </p>
+          </section>
+
+          <section id="counterfactual">
+            <p class="section-number">04</p>
+            <h2>Counterfactual</h2>
+            <p>
+              At the default setting, the baseline price remains constant. A user-selected trend
+              compounds monthly. For example, at a 5% trend, a baseline of $1.00 becomes $1.05 in
+              month two, and $1.1025 in month three.
+            </p>
+          </section>
+
+          <section id="formula">
+            <p class="section-number">05</p>
+            <h2>Calculation</h2>
+            <div class="formula-block" aria-label="Excess cost formula">
+              <span>gallons per fill = tank gallons x 0.75</span>
+              <span>monthly difference = sum(actual price - alternative price) x gallons per fill</span>
+              <span>total difference = sum(monthly differences)</span>
+            </div>
+            <p>
+              A positive result is additional estimated spending. A negative result is estimated
+              savings relative to the selected counterfactual.
+            </p>
+          </section>
+
+          <section id="limitations">
+            <p class="section-number">06</p>
+            <h2>Limitations</h2>
+            <ul>
+              <li>Historical observations are not uniformly daily across dates or jurisdictions.</li>
+              <li>AAA values are jurisdiction averages, not prices at a driver's specific station.</li>
+              <li>Tank capacities are source-reported and currently unverified unless noted.</li>
+              <li>Make, model, and year can map to several overlapping generations or variants.</li>
+            </ul>
+          </section>
+
+          <section id="sources">
+            <p class="section-number">07</p>
+            <h2>Sources</h2>
+            <p>
+              National and state prices come from
+              <a href="https://gasprices.aaa.com/">AAA Gas Prices</a>. Historical backfill was
+              initialized from
+              <a href="https://github.com/jacobschulman/gas-tracker">jacobschulman/gas-tracker</a>.
+              Vehicle specifications come from
+              <a href="https://github.com/gor3a/vehicle-makes-models">gor3a/vehicle-makes-models</a>.
+            </p>
+          </section>
+        </article>
+      </div>
+    </main>
+
+    <footer>
+      <a
+        class="github-button"
+        href="https://github.com/rhawrami/gas_prices"
+        aria-label="View Fuel Vig on GitHub"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.11.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.52-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.78 2.72 1.27 3.38.97.1-.75.4-1.27.74-1.56-2.57-.29-5.27-1.29-5.27-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.47.11-3.05 0 0 .97-.31 3.16 1.18a10.98 10.98 0 0 1 5.76 0c2.2-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.71 5.39-5.29 5.68.42.36.79 1.06.79 2.15v3.19c0 .31.21.68.8.56A11.5 11.5 0 0 0 12 .7Z"/>
+        </svg>
+      </a>
+    </footer>
+  </body>
+</html>
